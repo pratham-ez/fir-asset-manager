@@ -1,0 +1,49 @@
+service: asset-manager
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: prod
+  region: ap-south-1
+  apiName: ${self:service}
+  memorySize: 128 # MB
+  timeout: 10 # Seconds
+  environment:
+    FILE_UPLOAD_BUCKET_NAME: ${self:custom.fileBucketName}
+
+plugins:
+  - serverless-iam-roles-per-function
+
+custom:
+  fileBucketName: fir-file-bucket-${self:provider.stage}
+
+functions:
+  s3FileUploader:
+    handler: src/fileUploader.handler
+    name: s3-file-uploader
+    description: Uploads file to S3
+    events:
+      - http:
+          path: /users/{firId}/fir-image
+          method: POST
+          request:
+            parameters:
+              querystrings:
+                fileExtension: true
+              paths:
+                firId: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - "s3:PutObject"
+          - "s3:GetObject"
+          - "s3:DeleteObject"
+        Resource: arn:aws:s3:::${self:custom.fileBucketName}/*
+
+resources:
+  Resources:
+    FileBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.fileBucketName}
+        AccessControl: Private
