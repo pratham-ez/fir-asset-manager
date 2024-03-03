@@ -1,4 +1,4 @@
-service: asset-manager
+service: fir-file-uploader
 
 provider:
   name: aws
